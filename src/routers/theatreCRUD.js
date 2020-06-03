@@ -2,53 +2,67 @@ const express=require('express')
 
 const Theatre=require('../models/theatre')
 const User=require('../models/user')
-const auth=require('../middlewares/authVendor')
-//const authAdmin=require('../middlewares/authAdmin')
+const auth=require('../middlewares/auth')
 const router=new express.Router()
 
-//Vendor:Theatre list
 router.get('/theatres',auth,async(req,res)=>{ 
  
-try
-{
-    const user=req.user;
-    console.log(user.userType)
-    await user.populate('theatres').execPopulate()
-    const theatres=user.theatres
-    if(!theatres)
+    try
     {
-        return res.status(404).send("You haven't registered any theatre yet!")
-    }
-    const theatreStatus={
-        unapproved:[],
-        active:[],
-        expired:[]
-    }
-    for (var i=0;i<theatres.length;i++)
-    { 
-        if(theatres[i].status==="pending")
+        const user=req.user;
+        //console.log(user.userType)
+        //VENDOR
+        
+        if(user.userType==="vendor")
         {
-            theatreStatus.unapproved.push(theatres[i])
+            await user.populate('theatres').execPopulate()
+            const theatres=user.theatres
+            //const theatres=await Theatre.find({owner:id})
+            if(!theatres)
+            {
+                return res.status(404).send("You haven't registered any theatre yet!")
+            }
+            const theatreStatus={
+                unapproved:[],
+                active:[],
+                expired:[]
+            }
+            for (var i=0;i<theatres.length;i++)
+            { 
+                if(theatres[i].status==="pending")
+                {
+                    theatreStatus.unapproved.push(theatres[i])
+                }
+                else  
+                {
+                    const recent=new Date()
+                    if(theatres[i].leaseInfo.lastDate.getTime()<recent.getTime())
+                    {
+                        theatreStatus.active.push(theatres[i])
+                    }
+                    else
+                    {
+                        theatreStatus.expired.push(theatres[i])
+                    }
+                }
+            }
+            return res.status(200).send(theatreStatus)
         }
-        else  
-        {
+        //ADMIN
+        if(user.userType==="admin"){
+            console.log("Admin is logged in")
             const recent=new Date()
-            if(theatres[i].leaseInfo.lastDate.getTime()<recent.getTime())
-            {
-                theatreStatus.active.push(theatres[i])
-            }
-            else
-            {
-                theatreStatus.expired.push(theatres[i])
-            }
+            //depends upon query
+            const theatres=await Theatre.find({status:"approved"})
+            const expiredTheatres=await Theatre.find({'leaseInfo.lastDate':{$lt:recent},status:"approved"})
+            const unapprovedTheatres=await Theatre.find({status:"pending"})
+            return res.status(200).send({expiredTheatres,unapprovedTheatres,theatres})
         }
-    }
-    return res.status(200).send(theatreStatus)
-}catch(e)
-    {
-    res.status(501).send(e)
-    }
-})
+    }catch(e)
+        {
+        res.status(501).send(e)
+        }
+    })
 
 //add theatre
 

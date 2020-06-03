@@ -1,48 +1,59 @@
 const express=require('express')
+
+const router=new express.Router()
+const auth=require('../middlewares/auth')
+
 const Movie=require('../models/movie')
 const User=require("../models/user")
-const router=new express.Router()
+
 
 //Add Comment
-
-router.put('/comment/:userid/:movieid',async(req,res)=>{
+router.put('/comment/:movieid',auth,async(req,res)=>{
     const comment={
         body:req.body.comment,
-        postedBy:req.params.userid
+        postedBy:req.user._id
     }
-    const movie=await Movie.findByIdAndUpdate(req.params.movieid,{$push:{comments:comment}},{new:true,runValidators:true})
-                .populate("comments.postedBy","name")
-    if(!movie)
-    {
-       console.log("Movie doesnot exist")
-       return res.status(404).send()
+    try{
+        const movie=await Movie.findByIdAndUpdate(req.params.movieid,{$push:{comments:comment}},{new:true,runValidators:true})
+                    .populate("comments.postedBy","name")
+        if(!movie)
+        {
+           console.log("Movie doesnot exist")
+           return res.status(404).send()
+        }
+        console.log(movie.comments[0].postedBy.name)
+        return res.status(201).send(movie)
+    }catch(e){
+        return res.status(501).send(e)
     }
-    console.log(movie.comments[0].postedBy.name)
-    return res.status(201).send(movie)
 })
 
 //Remove Comment
-router.put('/uncomment/:userid/:movieid',async(req,res)=>{
+router.put('/uncomment/:movieid',auth,async(req,res)=>{
     const comment={
         body:req.body.comment,
-        postedBy:req.params.userid,
+        postedBy:req.user._id,
         date:new Date(req.body.date)
     }
-    console.log(comment.date)
-    const movie=await Movie.findByIdAndUpdate(req.params.movieid,{$pull:{comments:comment}},{new:true,runValidators:true})
-    if(!movie)
-    {
-       console.log("Movie doesnot exist")
-       return res.status(404).send()
+    try{
+        const movie=await Movie.findByIdAndUpdate(req.params.movieid,{$pull:{comments:comment}},{new:true,runValidators:true})
+        if(!movie)
+        {
+            console.log("Movie doesnot exist")
+            return res.status(404).send()
+        }
+        return res.status(201).send(movie)
+    }catch(e){
+        return res.status(501).send(e);
     }
-    return res.status(201).send(movie)
 })
+
 //Add rating
 router.put('/addrating/:userid/:movieid',async(req,res)=>{
     //final rating of movie is not updated yet
     const rating={
         rate:req.body.rate,
-        ratedBy:req.params.userid
+        ratedBy:req.user._id
     }
     const movie=await Movie.findByIdAndUpdate(req.params.movieid,{$push:{ratings:rating}},{new:true,runValidators:true})
     if(!movie)
@@ -53,6 +64,7 @@ router.put('/addrating/:userid/:movieid',async(req,res)=>{
     console.log(movie)
     return res.status(201).send(movie)
 })
+
 //Remove rating
 router.put('/unrate/:userid/:movieid',async(req,res)=>{
     const rating={

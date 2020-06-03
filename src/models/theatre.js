@@ -69,9 +69,7 @@ const theatreSchema=new Schema({
     
 })
 
-theatreSchema.virtual('totalSlot',{
-
-})
+//Cascade deleting code
 
 
 const Theatre=mongoose.model('Theatre',theatreSchema)

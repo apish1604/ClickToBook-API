@@ -2,6 +2,11 @@ const express=require('express')
 const Movie=require('../models/movie')
 const router=new express.Router()
 const auth=require('../middlewares/authAdmin')
+
+const imdb=require('imdb-api')
+const cli=new imdb.Client({apiKey:'e3e70ce0'})
+
+
 //Get movie info
 router.get('/getmovies',auth,async(req,res)=>{
     try
@@ -20,17 +25,32 @@ router.get('/getmovies',auth,async(req,res)=>{
 })
 
 //Add movie Info
-router.post('/addmovie',auth,async(req,res)=>{
-    try
-    {
-        const movie=new Movie(req.body);
-        await movie.save();
-        res.status(201).send(user);
-    }
-    catch(e)
-    {
-        res.status(400).send(e);
-    }
+router.post('/addmovie',async(req,res)=>{
+    const name=req.body.name;
+    cli.get({name:name}).then(async(result)=>{
+        console.log(result)
+        const movie=await new Movie({
+            title:result.title,
+            genres:result.genres.split(","),
+            director:result.director.split(","),
+            actors:result.actors.split(","),
+            language:result.languages.split(","),
+            synopsis:result.plot,
+            runtime:result.runtime,
+            releaseDate:result.released,
+            rating:result.rating,
+            votes:result.votes,
+            country:result.country.split(","),
+            poster:result.poster
+        })
+        movie.save()
+        console.log('succcess!')
+        return res.send(movie)
+    }).catch((e)=>{
+        console.log(e);
+        console.log('error1')
+        return res.send("Error")
+    })
 })
 
 //Update Movie
@@ -64,11 +84,11 @@ router.delete('/deletemovie/:id',auth,async(req,res)=>{
         {
             return res.status(404).send()
         }
-        console.log('hi')
+        //console.log('hi')
         movie=Movie.findOneAndDelete({_id:req.params.id,inTheatre:true})
         if(!movie)
         {
-            res.send("This movie is available in theatres.So you can't delete this")
+            res.send("This movie is available in theatres.You can't delete this")
         }
         return res.send(movie)
     }catch(e)

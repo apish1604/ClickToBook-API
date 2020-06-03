@@ -49,16 +49,20 @@ const userSchema=new mongoose.Schema({
     },
     address:{
         country:{
-            type:String
+            type:String,
+            lowercase:true
         },
         state:{
-            type:String
+            type:String,
+            lowercase:true
         },
         city:{
-            type:String
+            type:String,
+            lowercase:true
         },
          street:{
-             type:String
+             type:String,
+             lowercase:true
          }
     },
     tokens:[{}]
@@ -68,6 +72,12 @@ userSchema.virtual('theatres',{
 ref:'Theatre',
 localField:'_id',
 foreignField:'owner'
+})
+
+userSchema.virtual('comments',{
+    ref:'Movie',
+    localField:'_id',
+    foreignField:'comments.postedBy'
 })
 
 userSchema.methods.toJSON= function(){
@@ -101,9 +111,9 @@ userSchema.statics.findByCredentials=async (email,password)=>{
     }
     return user;
 }
+
 userSchema.pre('save',async function(next){
     const user=this;
-    console.log("starting")
     if(user.isModified('password')){
         user.password=await bcrypt.hash(user.password,8)
     }

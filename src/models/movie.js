@@ -56,8 +56,7 @@ const movieSchema=new mongoose.Schema({
         },
         ratedBy:{
             type:ObjectId,
-            ref:User,
-            unique:true
+            ref:User
         }
     }],
     //make them virtual

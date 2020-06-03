@@ -59,6 +59,7 @@ router.put('/users/me',auth,async (req,res)=>{
             user[update]=req.body[update]
         )
         await user.save();
+        console.log(user.address.city);
         return res.status(200).send(user)
     }catch(e){
         return res.status(400).send(e);
