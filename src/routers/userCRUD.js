@@ -47,7 +47,7 @@ router.post('/users/login',async(req,res)=>{
 router.put('/users/me',auth,async (req,res)=>{
     const updates=Object.keys(req.body)
     const user=req.user;
-    const allowedUpdates=['name','email','password','phoneNumber','address','userType']
+    const allowedUpdates=['name','email','password','phoneNumber','address','userType','gender','DOB']
     const isValidOperation=updates.every((update)=>
         allowedUpdates.includes(update))
 

@@ -2,7 +2,7 @@ const express=require('express')
 const Movie=require('../models/movie')
 const router=new express.Router()
 const auth=require('../middlewares/authAdmin')
-
+const vendauth=require('../middlewares/authVendor')
 const imdb=require('imdb-api')
 const cli=new imdb.Client({apiKey:'e3e70ce0'})
 
@@ -28,8 +28,7 @@ router.get('/getmovies',auth,async(req,res)=>{
 router.post('/addmovie',async(req,res)=>{
     const name=req.body.name;
     cli.get({name:name}).then(async(result)=>{
-        console.log(result)
-        const movie=await new Movie({
+             const movie=await new Movie({
             title:result.title,
             genres:result.genres.split(","),
             director:result.director.split(","),
@@ -43,6 +42,8 @@ router.post('/addmovie',async(req,res)=>{
             country:result.country.split(","),
             poster:result.poster
         })
+       //console.log(typeof(result.rating))
+        console.log(movie)
         movie.save()
         console.log('succcess!')
         return res.send(movie)
@@ -95,6 +96,19 @@ router.delete('/deletemovie/:id',auth,async(req,res)=>{
     {
         res.status(400).send(e)    
     }
+})
+//Remove movie from shows
+router.delete('/removemovie/:theatreid',vendauth,async (req,res)=>{
+    const _movie=req.body.movieid
+    const _theatre=req.params.theatreid
+
+    try{
+        
+    }catch(e)
+    {
+        return res.status(404).send();
+    }
+
 })
 
 module.exports=router

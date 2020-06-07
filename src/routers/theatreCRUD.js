@@ -3,6 +3,8 @@ const express=require('express')
 const Theatre=require('../models/theatre')
 const User=require('../models/user')
 const auth=require('../middlewares/auth')
+const adminauth=require('../middlewares/authAdmin')
+const vendauth=require('../middlewares/authVendor')
 const router=new express.Router()
 
 router.get('/theatres',auth,async(req,res)=>{ 
@@ -33,10 +35,11 @@ router.get('/theatres',auth,async(req,res)=>{
                 {
                     theatreStatus.unapproved.push(theatres[i])
                 }
-                else  
+                else
                 {
                     const recent=new Date()
-                    if(theatres[i].leaseInfo.lastDate.getTime()<recent.getTime())
+                    console.log(recent.getTime())
+                    if(theatres[i].leaseInfo.lastDate.getTime()>recent.getTime())
                     {
                         theatreStatus.active.push(theatres[i])
                     }
@@ -53,7 +56,7 @@ router.get('/theatres',auth,async(req,res)=>{
             console.log("Admin is logged in")
             const recent=new Date()
             //depends upon query
-            const theatres=await Theatre.find({status:"approved"})
+            const theatres=await Theatre.find({status:"approved",'leaseInfo.lastDate':{$gt:recent}})
             const expiredTheatres=await Theatre.find({'leaseInfo.lastDate':{$lt:recent},status:"approved"})
             const unapprovedTheatres=await Theatre.find({status:"pending"})
             return res.status(200).send({expiredTheatres,unapprovedTheatres,theatres})
@@ -64,13 +67,15 @@ router.get('/theatres',auth,async(req,res)=>{
         }
     })
 
+
 //add theatre
 
-router.post('/addtheatre',auth,async(req,res)=>{
+router.post('/addtheatre',vendauth,async(req,res)=>{
     try
     {
         const theatre=await new Theatre(req.body)
         theatre.owner=req.user._id
+        console.log(theatre)
         await theatre.save()
         res.status(201).send(theatre)
     }
@@ -80,12 +85,43 @@ router.post('/addtheatre',auth,async(req,res)=>{
     }
 })
 
-//UpdateTheatre
-router.put('/theatres/update/:id',auth,async ()=>{
-        //[client is sending the only element of array which needs to be updated,add,delete,edit(pull,push,set)<- how i will get to know ]
+//Approve theatre
+router.put('/approval',adminauth,async (req,res)=>{
 
+    const status=req.body.status //"approve","reject"
+    try{
+        
+        if(status==="approve")
+        {
+            const theatre=await Theatre.findById(req.params.theatreid)
+            if(!theatre)
+            {
+                return res.status(404).send("Theatre not found")
+            }
+            theatre.status="approved";
+            theatre.save()
+            return res.status(200).send(theatre.status)
+        }
+        else
+        {
+            const theatre=await Theatre.findByIdAndDelete(req.params.theatreid)
+            if(!theatre)
+            {
+                return res.status(404).send("Theatre not found")
+            }
+            return res.status(200).send("Successful!")
+        }
+        
+    }catch(e){
+        return res.status(501).send(e)
+}
+})
+//UpdateTheatre
+router.put('/theatres/update/:id',vendauth,async (req,res)=>{
+        //[client is sending the only element of array which needs to be updated,add,delete,edit(pull,push,set)<- how i will get to know ]
+        //Solution :client send updated values(rewrite)
     const _id=req.params.id
-    const updates=req.body
+    const updates=Object.keys(req.body)
     const allowedUpdates=['name','brandName','location','seatInfo','slotInfo','status','leaseInfo']
 
     const isValidOperation=updates.every((update)=>allowedUpdates.includes(update))
@@ -93,30 +129,38 @@ router.put('/theatres/update/:id',auth,async ()=>{
     {
         return res.send('Invalid Update')
     }
-    const theatre=await Theatre.findById(_id)
-    updates.forEach(update => {
-        if(update==='slotInfo')
+    try{
+        const theatre=await Theatre.findById(_id)
+        if(!theatre)
         {
-            theatre[update].concat(update)
+            return res.status(404).send("Theatre not found!")
         }
-        else if(update==='seatInfo')
-        {
-            theatre[update].set()
-        }
-    });
+        //console.log(theatre)
+        updates.forEach((update)=>
+            theatre[update]=req.body[update]
+        )
+        //console.log("1")
+        await theatre.save();
+        //console.log("2")
+        return res.send(theatre);
+    }catch(e)
+    {
+        return res.status(501).send(e)
+    }
 
 })
- //Delete many theatre
+ //Delete one theatre at a time
  //PS:when client send wrong id ,instead of showing "you are not owner", it throws an error
- router.delete('/theatres',auth,async (req,res)=>{
+ router.delete('/theatre/delete',vendauth,async (req,res)=>{
      const _id=req.body.id
      console.log(_id)
      try{
-         const theatre=await Theatre.deleteMany({_id:_id,owner:req.user._id})
-        if(!theatre.n||!theatre.ok)
+        const theatre=await Theatre.findOne({_id,owner:req.user._id})
+        if(!theatre)
         {
             return res.status(404).send("You are not owner!");
         }
+        await theatre.remove();
         return res.send(theatre)
      }catch(e)
      {
@@ -124,4 +168,22 @@ router.put('/theatres/update/:id',auth,async ()=>{
      }
  })
  
+  //Delete many theatre
+ //PS:when client send wrong id ,instead of showing you are not owner it throws an error
+ router.delete('/theatres/delete',auth,async (req,res)=>{
+    const _id=req.body.id
+    console.log(_id)
+    try{
+        const theatre=await Theatre.deleteMany({_id:_id,owner:req.user._id})
+      // const theatre=await Theatre.findAndDeleteMany({_id:_id,owner:req.user._id})
+       if(!theatre.n||!theatre.ok)
+       {
+           return res.status(404).send("You are not owner!");
+       }
+       return res.send(theatre)
+    }catch(e)
+    {
+        return res.status(501).send()
+    }
+})
 module.exports=router

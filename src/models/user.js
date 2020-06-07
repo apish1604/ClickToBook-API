@@ -8,9 +8,10 @@ const Theatre=require('./theatre')
 
 const userSchema=new mongoose.Schema({
     name:{
-        type:String,
-        //required:true,
-        trim:true
+        firstName:{
+            type:String
+        },
+        lastName:String
     },
     email:{
         type:String,
@@ -64,6 +65,13 @@ const userSchema=new mongoose.Schema({
              type:String,
              lowercase:true
          }
+    },
+    gender:{
+        type:String,
+        enum:["Male","Female","Other"]
+    },
+    DOB:{
+        type:Date
     },
     tokens:[{}]
 })

@@ -119,7 +119,8 @@ router.post('/theatres/showTime/:theatreid',auth,async (req,res)=>{
     }
     const showTimes=await Promise.all(showTimePromises)
     return res.status(201).send(showTimes)
-  }catch(e){
+  }
+  catch(e){
     return res.status(501).send(e)
   }
 

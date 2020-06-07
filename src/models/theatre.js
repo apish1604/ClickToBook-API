@@ -2,6 +2,7 @@ const mongoose=require('mongoose')
 const validator=require('validator')
 const connect=require('../db/mongoose')
 const User=require('./user')
+const showTime=require('./showTime')
 const Schema=mongoose.Schema
 
 const slotSchema=new Schema({
@@ -17,7 +18,7 @@ const theatreSchema=new Schema({
     },
     brandName:{
         type:String,
-        required:true
+        //required:true
     },
     owner:{
         type:Schema.Types.ObjectId,
@@ -58,19 +59,21 @@ const theatreSchema=new Schema({
     leaseInfo:{
         startDate:{
             type:Date,
-            default:Date.now 
+            default:"2000-01-01"
         },
         lastDate:{
-            type:Date
+            type:Date,
+            default:"2000-02-02"
         }
-        ///validation
-        //amount
     }
     
 })
-
-//Cascade deleting code
+theatreSchema.index({name:"text"})
 
 
 const Theatre=mongoose.model('Theatre',theatreSchema)
+
+// Theatre.on('index', function(error) {
+//     console.log(error);
+//   });
 module.exports=Theatre

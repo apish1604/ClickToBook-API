@@ -15,3 +15,4 @@ router.get('/movies/intheatre',async (req,res)=>{
         return res.status(501).send(e)
     }
 })
+module.exports=router

@@ -9,3 +9,4 @@ router.get('/ticketbooking/:showtimeid',async (req,res)=>{
     const _user=req.body.user
 
 })
+module.exports=router
